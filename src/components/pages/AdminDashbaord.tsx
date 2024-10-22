@@ -8,8 +8,7 @@ const AdminDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate a loading state (you can replace this with actual loading logic)
-    setTimeout(() => setLoading(false), 2000); // Simulate a 2-second loading time
+    setTimeout(() => setLoading(false), 2000); 
   }, []);
 
   const handleLogout = () => {

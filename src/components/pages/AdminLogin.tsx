@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLoginMutation } from '../../redux/auth/authApi';
 import toast, { Toaster } from 'react-hot-toast';
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'; // Import eye icons
+import { useAuth } from '../../Context/AuthContext'; // Import useAuth hook
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,17 +11,19 @@ const AdminLogin: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false); // For toggling password visibility
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
-  const [login, { isLoading }] = useLoginMutation();
+  const { login } = useAuth(); // Get login from AuthContext
+  const [loginMutation, { isLoading }] = useLoginMutation();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      const response = await login({ email, password }).unwrap();
+      const response = await loginMutation({ email, password }).unwrap();
       console.log('Login API Response:', response);
 
       const { token, data } = response;
 
+      // Check if token and user data are properly returned
       if (!data || !token) {
         throw new Error('User or token object is missing in the response.');
       }
@@ -28,17 +31,21 @@ const AdminLogin: React.FC = () => {
       console.log('Token:', token);
       console.log('User Data:', data);
 
-      // Store token in localStorage for later authentication
-      localStorage.setItem('token', token);
-      localStorage.setItem('role', data.role); // Store the role for future reference
+      // Store token and role in AuthContext
+      login(token, data.role);
 
-      // If the logged-in user is an admin, redirect to dashboard
+      // Verify that the token and role are set correctly in AuthContext
       if (data.role === 'admin') {
-        toast.success('Login successful! Redirecting to dashboard...');
-        // Ensure that token is saved properly before redirect
+        toast.success('Login successful! Redirecting to dashboard...', {
+          position: 'top-right',
+          duration: 3000, // Use duration instead of autoClose
+      
+        });
+
+        // Redirect to admin dashboard
         setTimeout(() => {
           navigate('/adminDashboard');
-        }, 1000); // Delay for a smoother experience
+        }, 500); // Add small delay for smoother experience
       } else {
         setErrorMessage('Unauthorized access. Only admins can log in.');
         toast.error('Unauthorized access. Only admins can log in.');
@@ -46,11 +53,14 @@ const AdminLogin: React.FC = () => {
     } catch (error: any) {
       console.error('Login error: ', error);
 
-      // Extract error message from response
       const errorMessage = error?.data?.message || 'An error occurred. Please try again.';
 
       // Show error message via toast
-      toast.error(errorMessage);
+      toast.error(errorMessage, {
+        position: 'top-right',
+        duration: 3000, // Use duration instead of autoClose
+      
+      });
     }
   };
 
@@ -85,7 +95,7 @@ const AdminLogin: React.FC = () => {
               Password
             </label>
             <input
-              type={showPassword ? 'text' : 'password'} // Toggle between text and password type
+              type={showPassword ? 'text' : 'password'}
               id="password"
               placeholder="Enter your password"
               className="w-full p-3 bg-gray-700 text-white placeholder-gray-400 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
@@ -93,10 +103,9 @@ const AdminLogin: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            {/* Toggle password visibility icon */}
             <div
               className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
-              onClick={() => setShowPassword(!showPassword)} // Toggle password visibility
+              onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
                 <AiFillEyeInvisible className="text-gray-400 text-xl" />
